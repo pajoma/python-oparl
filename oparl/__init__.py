@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-'''
+"""
 OParl client library.
 
 This package provides tools for easily retrieving information from an
@@ -62,7 +62,7 @@ verification by setting ``VERIFY_HTTPS`` to ``False``.
 
 The libraries logger (``log``) doesn't have a handler attached to it by
 default, but may come in handy during development.
-'''
+"""
 
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -78,67 +78,64 @@ import requests
 import six
 from unidecode import unidecode
 
-
 log = logging.getLogger(__name__)
-
 
 __version__ = '0.1.1'
 
-
 # Official OParl 1.0 schema URI
-SCHEMA_URI = 'https://schema.oparl.org/1.0'
+SCHEMA_URI = 'https://schema.oparl.org/1.1'
 
 # Should HTTPS certificates be verified?
 VERIFY_HTTPS = True
 
 
 class Warning(UserWarning):
-    '''
+    """
     Base class for OParl warnings.
-    '''
+    """
     pass
 
 
 class SpecificationWarning(Warning):
-    '''
+    """
     Warning that something did not comply with the OParl specification.
-    '''
+    """
     pass
 
 
 class ContentWarning(Warning):
-    '''
+    """
     Warning that some content was malformed.
 
     This occurs, for example, if a date string does not contain a valid
     date.
-    '''
+    """
     pass
 
 
 def _class_from_type_uri(uri):
-    '''
+    """
     Convert a type URI to a class.
-    '''
+    """
     parts = uri.rsplit('/', 1)
     if len(parts) != 2:
         raise ValueError('Invalid type URI "{uri}".'.format(uri=uri))
     if parts[0] != SCHEMA_URI:
         warn(('Invalid schema URI "{schema_uri}" in type URI "{type_uri}" '
-             + '(should be "{oparl_uri}").').format(schema_uri=parts[0],
-             type_uri=uri, oparl_uri=SCHEMA_URI), SpecificationWarning)
+              + '(should be "{oparl_uri}").').format(schema_uri=parts[0],
+                                                     type_uri=uri, oparl_uri=SCHEMA_URI), SpecificationWarning)
     import oparl.objects
     try:
         return getattr(sys.modules['oparl.objects'], parts[1])
     except AttributeError:
         raise ValueError('Unknown type "{name}" in type URI "{uri}".'.format(
-                         name=parts[1], uri=uri))
+            name=parts[1], uri=uri))
 
 
 def _get_json(url):
-    '''
+    """
     Download JSON from an URL and parse it.
-    '''
+    """
     log.debug('Downloading {url}'.format(url=url))
     r = requests.get(url, verify=VERIFY_HTTPS)
     r.raise_for_status()
@@ -146,7 +143,7 @@ def _get_json(url):
 
 
 def from_json(data):
-    '''
+    """
     Initialize an OParl object from JSON.
 
     ``data`` is raw OParl JSON data (either as a Python data
@@ -154,49 +151,49 @@ def from_json(data):
 
     Returns an appropriate subclass of ``Object`` initialized using
     the given data.
-    '''
+    """
     if isinstance(data, six.string_types):
         data = json.loads(data)
-    if not 'id' in data:
+    if 'id' not in data:
         raise ValueError('JSON data does not have an `id` field.')
-    if not 'type' in data:
+    if 'type' not in data:
         raise ValueError('JSON data does not have a `type` field.')
     cls = _class_from_type_uri(data['type'])
     obj = cls(data['id'], data['type'])
-    obj._init_from_json(data)
+    obj.init_from_json(data)
     return obj
 
 
 def from_id(id):
-    '''
+    """
     Initialize an OParl object from its ID (URL).
 
     The object's data is downloaded and parsed. The resulting object is
     returned.
-    '''
+    """
     return from_json(_get_json(id))
 
 
 def _lazy(id, type):
-    '''
+    """
     Create a lazy OParl object.
 
     The returned object doesn't contain any data (aside from the ID and
     the type). The data is downloaded once it is required
-    '''
+    """
     cls = _class_from_type_uri(type)
     return cls(id, type)
 
 
 def _is_url(value):
-    '''
+    """
     Check if a value looks like an URL.
-    '''
+    """
     return isinstance(value, six.string_types) and value.startswith('http')
 
 
 class ExternalObjectList(collections.Sequence):
-    '''
+    """
     (Lazy) list of OParl objects.
 
     OParl has "external object lists". These lists contain OParl objects
@@ -222,7 +219,8 @@ class ExternalObjectList(collections.Sequence):
     Due to its dynamic nature, instances of this class only support non-
     negative integer indices. In particular, slicing and negative
     indices are not supported
-    '''
+    """
+
     # The only mandatory link between sub-pages of a paginated list in
     # OParl is ``next``. While OParl offers several other such links
     # (e.g. ``last``) these are optional. Similarly, OParl doesn't
@@ -240,13 +238,13 @@ class ExternalObjectList(collections.Sequence):
         return self._len
 
     def _load_page_for_index(self, i):
-        '''
+        """
         Loads the sub-page which contains an index.
 
         The page which contains the index ``i`` is loaded. If ``i`` is
         larger than the number of items in the list then an
         ``IndexError`` is raised.
-        '''
+        """
         j = 0
         while True:
             if j == len(self._page_urls) - 1:
@@ -259,16 +257,16 @@ class ExternalObjectList(collections.Sequence):
             j += 1
 
     def _load_page(self, page_index):
-        '''
+        """
         Load a sub-page.
 
         Sub-pages must be loaded incrementally, i.e. page ``i`` must be
         loaded before page ``i + 1``.
-        '''
+        """
         if page_index == self._current_page_index:
             return
         log.debug('Getting page {index} for list {url}'.format(
-                  index=page_index, url=self.url))
+            index=page_index, url=self.url))
         self._offset, url = self._page_urls[page_index]
         if url is None:
             raise IndexError()
@@ -290,11 +288,11 @@ class ExternalObjectList(collections.Sequence):
 
     def __repr__(self):
         return unidecode('<OParl ExternalObjectList {url}>'.format(
-                         url=self.url))
+            url=self.url))
 
 
 class Object(collections.Mapping):
-    '''
+    """
     Base class for all OParl objects.
 
     The subclasses of this class (e.g. ``Person``) represent the various
@@ -310,7 +308,7 @@ class Object(collections.Mapping):
     lazily, i.e. their full data is only downloaded once it is required.
     You can check whether that has happened using the ``loaded``
     attribute and force it via the ``load`` method.
-    '''
+    """
     # Fields that have type 'Date'. Their values are automatically
     # parsed from the string representation.
     _DATE_FIELDS = []
@@ -345,23 +343,23 @@ class Object(collections.Mapping):
     _EXTERNAL_LIST_FIELDS = []
 
     def __init__(self, id, type):
-        '''
+        """
         Private constructor.
 
         Use ``from_id`` or ``from_json`` instead.
-        '''
+        """
         self._data = {'id': id, 'type': type}
         self.loaded = False
 
     def load(self, force=False):
-        '''
+        """
         Load the object's data if it hasn't been loaded, yet.
 
         If ``force`` is true then the data is always downloaded.
-        '''
+        """
         if self.loaded and not force:
             return
-        self._init_from_json(_get_json(self._data['id']))
+        self.init_from_json(_get_json(self._data['id']))
 
     def __getitem__(self, key):
         try:
@@ -381,14 +379,14 @@ class Object(collections.Mapping):
         return len(self._data)
 
     def _convert_value(self, field, value):
-        '''
+        """
         Convert a JSON value to its proper type.
 
         If the field has a special type (as defined by the class'
         ``_DATE_FIELDS``, ``_DATETIME_FIELDS``, etc.) then the value is
         converted accordingly. Otherwise the value is returned
         unchanged.
-        '''
+        """
         if field in self._DATE_FIELDS:
             return self._parse_date(value, field)
         if field in self._DATETIME_FIELDS:
@@ -409,9 +407,9 @@ class Object(collections.Mapping):
         if (not isinstance(value, collections.Sequence)
                 or isinstance(value, six.string_types)):
             warn(('In object "{id}": Field "{field}" of type "{type}" must '
-                 + 'contain a list, but a non-list value was found '
-                 + 'instead.').format(id=self._data['id'], field=field,
-                 type=self._data['type']), SpecificationWarning)
+                  + 'contain a list, but a non-list value was found '
+                  + 'instead.').format(id=self._data['id'], field=field,
+                                       type=self._data['type']), SpecificationWarning)
             value = [value]
         return value
 
@@ -420,9 +418,9 @@ class Object(collections.Mapping):
             return dateutil.parser.parse(value).date()
         except ValueError as e:
             warn(('In object "{id}": Field "{field}" contains an invalid '
-                 + 'date string ("{value}"): {error}').format(
-                 id=self._data['id'], field=field, value=value, error=e),
-                 ContentWarning)
+                  + 'date string ("{value}"): {error}').format(
+                id=self._data['id'], field=field, value=value, error=e),
+                ContentWarning)
             return value
 
     def _parse_datetime(self, value, field):
@@ -430,17 +428,17 @@ class Object(collections.Mapping):
             return dateutil.parser.parse(value)
         except ValueError as e:
             warn(('In object "{id}": Field "{field}" contains an invalid '
-                 + 'date-time string ("{value}"): {error}').format(
-                 id=self._data['id'], field=field, value=value, error=e),
-                 ContentWarning)
+                  + 'date-time string ("{value}"): {error}').format(
+                id=self._data['id'], field=field, value=value, error=e),
+                ContentWarning)
             return value
 
     def _parse_object(self, value, field):
         if _is_url(value):
             warn(('In object "{id}": Field "{field}" of type "{type}" '
-                 + 'must contain an object, but a URL ("{url}") was found '
-                 + 'instead.').format(id=self._data['id'], field=field,
-                 type=self._data['type'], url=value), SpecificationWarning)
+                  + 'must contain an object, but a URL ("{url}") was found '
+                  + 'instead.').format(id=self._data['id'], field=field,
+                                       type=self._data['type'], url=value), SpecificationWarning)
             return from_id(value)
         else:
             return from_json(value)
@@ -450,10 +448,10 @@ class Object(collections.Mapping):
         for v in self._ensure_list(value, field):
             if _is_url(v):
                 warn(('In object "{id}": The list in field "{field}" of '
-                     + 'type "{type}" must contain objects, but an URL '
-                     + '("{url}") was found instead.').format(
-                     id=self._data['id'], field=field, type=self._data['type'],
-                     url=v), SpecificationWarning)
+                      + 'type "{type}" must contain objects, but an URL '
+                      + '("{url}") was found instead.').format(
+                    id=self._data['id'], field=field, type=self._data['type'],
+                    url=v), SpecificationWarning)
                 values.append(from_id(v))
             else:
                 values.append(from_json(v))
@@ -462,9 +460,9 @@ class Object(collections.Mapping):
     def _parse_reference(self, value, field):
         if isinstance(value, dict):
             warn(('In object "{id}": Field "{field}" of type "{type}" '
-                 + 'must contain an object reference (URL), but an object '
-                 + 'was found instead.').format(id=self._data['id'],
-                 field=field, type=self._data['type']), SpecificationWarning)
+                  + 'must contain an object reference (URL), but an object '
+                  + 'was found instead.').format(id=self._data['id'],
+                                                 field=field, type=self._data['type']), SpecificationWarning)
             return from_json(value)
         else:
             return _lazy(value, self._REFERENCE_FIELDS[field])
@@ -475,33 +473,33 @@ class Object(collections.Mapping):
         for v in self._ensure_list(value, field):
             if isinstance(v, dict):
                 warn(('In object "{id}": The list in field "{field}" of '
-                     + 'type "{type}" must contain references (URLs), but '
-                     + 'an object was found instead.').format(
-                     id=self._data['id'], field=field,
-                     type=self._data['type']), SpecificationWarning)
+                      + 'type "{type}" must contain references (URLs), but '
+                      + 'an object was found instead.').format(
+                    id=self._data['id'], field=field,
+                    type=self._data['type']), SpecificationWarning)
                 values.append(from_json(v))
             else:
                 values.append(_lazy(v, obj_type))
         return values
 
-    def _init_from_json(self, data):
-        '''
+    def init_from_json(self, data):
+        """
         Init the object from (parsed) JSON data.
-        '''
-        if not 'id' in data:
+        """
+        if 'id' not in data:
             raise ValueError('JSON data does not have an `id` field.')
         if data['id'] != self._data['id']:
             warn(('Initializing object "{id}" from JSON data which contains a '
-                 + 'different ID ("{json_id}").').format(id=self._data['id'],
-                 json_id=data['id']), ContentWarning)
+                  + 'different ID ("{json_id}").').format(id=self._data['id'],
+                                                          json_id=data['id']), ContentWarning)
         try:
-            type =  data['type']
+            type = data['type']
         except KeyError:
             raise ValueError('JSON data does not have a `type` field.')
         cls = _class_from_type_uri(type)
         if cls != self.__class__:
             raise ValueError(('Type from JSON data ({type}) does not match '
-                             + 'instance type.').format(type=type))
+                              + 'instance type.').format(type=type))
         for key, value in six.iteritems(data):
             self._data[key] = self._convert_value(key, value)
         self.loaded = True
@@ -516,4 +514,3 @@ class Object(collections.Mapping):
             s += ' ({name})'.format(name=name)
         s += '>'
         return unidecode(s)
-

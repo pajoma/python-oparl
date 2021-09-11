@@ -34,20 +34,19 @@ import oparl
 import oparl.objects
 
 
-
 # Objects provided by the mocked ``_get_json``, keys are the URLs
 OBJECTS = {
     'a-legislativeterm': {
         'id': 'a-legislativeterm',
-        'type': 'https://schema.oparl.org/1.0/LegislativeTerm',
+        'type': 'https://schema.oparl.org/1.1/LegislativeTerm',
     },
     'object-with-id-that-differs-from-its-url': {
         'id': 'this is not my url',
-        'type': 'https://schema.oparl.org/1.0/System',
+        'type': 'https://schema.oparl.org/1.1/System',
     },
     'a-location': {
         'id': 'a-location',
-        'type': 'https://schema.oparl.org/1.0/Location',
+        'type': 'https://schema.oparl.org/1.1/Location',
     },
 }
 
@@ -73,7 +72,7 @@ def test_invalid_date_string_triggers_contentwarning():
     with pytest.warns(oparl.ContentWarning) as record:
         oparl.from_json('''{
             "id": "object-with-invalid-date",
-            "type": "https://schema.oparl.org/1.0/Organization",
+            "type": "https://schema.oparl.org/1.1/Organization",
             "startDate": "this is not a date"
         }''')
     assert len(record) == 1
@@ -84,7 +83,7 @@ def test_invalid_datetime_string_triggers_contentwarning():
     with pytest.warns(oparl.ContentWarning) as record:
         oparl.from_json('''{
             "id": "object-with-invalid-datetime",
-            "type": "https://schema.oparl.org/1.0/Organization",
+            "type": "https://schema.oparl.org/1.1/Organization",
             "created": "this is not a date-time"
         }''')
     assert len(record) == 1
@@ -95,10 +94,10 @@ def test_scalar_instead_of_list_triggers_specificationwarning():
     with pytest.warns(oparl.SpecificationWarning) as record:
         obj = oparl.from_json('''{
             "id": "object-with-scalar-instead-of-list",
-            "type": "https://schema.oparl.org/1.0/Person",
+            "type": "https://schema.oparl.org/1.1/Person",
             "membership": {
                 "id": "does-not-exist",
-                "type": "https://schema.oparl.org/1.0/Membership"
+                "type": "https://schema.oparl.org/1.1/Membership"
             }
         }''')
     assert len(record) == 1
@@ -113,7 +112,7 @@ def test_reference_instead_of_object_triggers_specificationwarning():
     with pytest.warns(oparl.SpecificationWarning) as record:
         obj = oparl.from_json('''{
             "id": "object-with-reference-instead-of-object",
-            "type": "https://schema.oparl.org/1.0/Body",
+            "type": "https://schema.oparl.org/1.1/Body",
             "location": "a-location"
         }''')
     assert len(record) == 1
@@ -127,7 +126,7 @@ def test_reference_instead_of_object_in_list_triggers_specificationwarning():
     with pytest.warns(oparl.SpecificationWarning) as record:
         obj = oparl.from_json('''{
             "id": "object-with-reference-instead-of-object-in-list",
-            "type": "https://schema.oparl.org/1.0/Body",
+            "type": "https://schema.oparl.org/1.1/Body",
             "legislativeTerm": ["a-legislativeterm"]
         }''')
     assert len(record) == 1
@@ -143,10 +142,10 @@ def test_object_instead_of_reference_triggers_specificationwarning():
     with pytest.warns(oparl.SpecificationWarning) as record:
         obj = oparl.from_json('''{
             "id": "object-with-object-instead-of-reference",
-            "type": "https://schema.oparl.org/1.0/Body",
+            "type": "https://schema.oparl.org/1.1/Body",
             "system": {
                 "id": "does-not-exist",
-                "type": "https://schema.oparl.org/1.0/System"
+                "type": "https://schema.oparl.org/1.1/System"
             }
         }''')
     assert len(record) == 1
@@ -160,10 +159,10 @@ def test_object_instead_of_reference_in_list_triggers_specificationwarning():
     with pytest.warns(oparl.SpecificationWarning) as record:
         obj = oparl.from_json('''{
             "id": "object-with-object-instead-of-reference-in-list",
-            "type": "https://schema.oparl.org/1.0/System",
+            "type": "https://schema.oparl.org/1.1/System",
             "otherOparlVersions": [{
                 "id": "does-not-exist",
-                "type": "https://schema.oparl.org/1.0/System"
+                "type": "https://schema.oparl.org/1.1/System"
             }]
         }''')
     assert len(record) == 1
@@ -177,7 +176,7 @@ def test_object_instead_of_reference_in_list_triggers_specificationwarning():
 
 def test_id_that_differs_from_url_triggers_contentwarning():
     obj = oparl._lazy('object-with-id-that-differs-from-its-url',
-                      'https://schema.oparl.org/1.0/System')
+                      'https://schema.oparl.org/1.1/System')
     with pytest.warns(oparl.ContentWarning) as record:
         obj.load()
     assert len(record) == 1
@@ -200,7 +199,7 @@ def test_invalid_schema_uri_triggers_specificationwarning():
 def test_missing_id_raises_valueerror():
     with pytest.raises(ValueError) as e:
         oparl.from_json('''{
-            "type": "https://schema.oparl.org/1.0/System"
+            "type": "https://schema.oparl.org/1.1/System"
         }''')
     assert 'does not have an `id` field' in str(e.value)
 
@@ -215,7 +214,7 @@ def test_missing_type_raises_valueerror():
 
 def test_type_mismatch_raises_valueerror():
     obj = oparl._lazy('a-location',
-                      'https://schema.oparl.org/1.0/System')
+                      'https://schema.oparl.org/1.1/System')
     with pytest.raises(ValueError) as e:
         obj.load()
     assert 'does not match instance type' in str(e.value)
